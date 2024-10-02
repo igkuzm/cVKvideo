@@ -1,0 +1,3 @@
+[submodule "cVK"]
+	path = cVK
+	url = git@github.com:igkuzm/cVK
