@@ -135,25 +135,39 @@ void search_video_cb(
 			cJSON *duration = 
 				cJSON_GetObjectItem(item, "duration");
 			if (duration)
-				printf("%d min\n", description->valueint);
+				printf("%d sec\n", duration->valueint);
 			printf("_______________________________\n");
 		}
 	}
 }
 
+static char *make_escaped(const char *str){
+	char *s = malloc(BUFSIZ);
+	if (!s)
+		return NULL;
+
+	int i, l=0;
+	for (i = 0; str[i]; ++i) {
+		if (str[i] == ' ' || str[i] == '\t' || str[i] == '0x20')
+		{
+			s[l++] = '%';
+			s[l++] = '2';
+			s[l++] = '0';
+		} else {
+			s[l++] = str[i];
+		}
+	}
+	s[l] = 0;
+	return s;
+}
+
 void search_video(const char *token, const char *query)
 {
-	
-	CURL *curl = curl_easy_init();
-	if (!curl){
-		printf("Err: can't init curl\n");
-		return;
-	}
 	
 	char q[BUFSIZ] = {0};
 	sprintf(q, "q=%s", query);
 	char *q_escaped = 
-		curl_easy_escape(curl, q, 0);
+		make_escaped(q);
 	if (!q_escaped){
 		printf("Err: can't parse query string\n");
 		return;
@@ -167,7 +181,7 @@ void search_video(const char *token, const char *query)
 			q_escaped,
 			NULL);
 
-	curl_free(q_escaped);
+	free(q_escaped);
 }
 
 static int main_loop(const char *token)
@@ -186,7 +200,8 @@ static int main_loop(const char *token)
 		if (strcmp(s, "q") == 0 || strcmp(s, "Q") == 0)
 			break;
 
-
+		search_video(token, s);
+		free(s);
 	}
 
 	return 0;
