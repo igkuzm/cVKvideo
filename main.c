@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "cVK/cVK.h"
-#include "client_id.h"
+#include "config.h"
 #include "strtok_foreach.h"
 #include "fm.h"
 #include <curl/curl.h>
@@ -148,7 +148,7 @@ static char *make_escaped(const char *str){
 
 	int i, l=0;
 	for (i = 0; str[i]; ++i) {
-		if (str[i] == ' ' || str[i] == '\t' || str[i] == '0x20')
+		if (str[i] == ' ' || str[i] == '\t' || str[i] == 0x20)
 		{
 			s[l++] = '%';
 			s[l++] = '2';

@@ -1,1 +1,8 @@
 # applicaton to open VK video in linux console
+
+create new VK application in
+https://vk.com/editapp?act=create
+set redirect url to: http://localhost:2000
+
+get client id and client secret and 
+set CLIENT_ID and CLIENT_SECRET in config.h
