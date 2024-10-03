@@ -1,8 +1,8 @@
 /**
- * File              : main.c
+ * File              : vkvideo.c
  * Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
  * Date              : 03.10.2024
- * Last Modified Date: 03.10.2024
+ * Last Modified Date: 04.10.2024
  * Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
  */
 
@@ -16,6 +16,11 @@
 #include "fm.h"
 #include <curl/curl.h>
 #include "cVK/cJSON.h"
+#include "getstr.h"
+#include "cVKvideo.h"
+#include "array.h"
+
+char buffer[BUFSIZ];
 
 static void login_cb(
 		void *d, const char *t, int e, 
@@ -82,106 +87,22 @@ static char *login(){
 	return token;
 }
 
-char *readString(){
-	int i = 0;
-	char *a = (char *) calloc(BUFSIZ, sizeof(char));
-	if (!a) {
-		fprintf(stderr, "ERROR. Cannot allocate memory\n");		
-		return NULL;
-	}										
-	
-	while (1) {
-		scanf("%c", &a[i]);
-		if (a[i] == '\n') {
-			break;
-		}
-		else {
-			i++;
-		}
-	}
-	a[i] = '\0';
-	return a;
-}
+struct video_search_t {
+	array_t *videos;
+	int iterator;
+};
 
-void search_video_cb(
-		void *d, const char *response, const char *error)
+static int video_search_cb(
+		void *data, cVKvideo_t *video, const char *error)
 {
-	if (error)
-		perror(error);
-
-	if (response){
-		cJSON *json = cJSON_Parse(response);
-		if (!json || !cJSON_IsObject(json)){
-			printf("Err: can't parse json response\n");
-			return;
-		}
-		cJSON *items = 
-			cJSON_GetObjectItem(json, "items");
-		if (!items)
-			return;
-
-		int i = 1;
-		cJSON *item;
-		cJSON_ArrayForEach(item, items){
-			printf("%d: ", i++);
-			cJSON *title = 
-				cJSON_GetObjectItem(item, "title");
-			if (title)
-				printf("%s\n", title->valuestring);
-			cJSON *description = 
-				cJSON_GetObjectItem(item, "description");
-			if (description)
-				printf("[%s]\n", description->valuestring);
-			cJSON *duration = 
-				cJSON_GetObjectItem(item, "duration");
-			if (duration)
-				printf("%d sec\n", duration->valueint);
-			printf("_______________________________\n");
-		}
-	}
-}
-
-static char *make_escaped(const char *str){
-	char *s = malloc(BUFSIZ);
-	if (!s)
-		return NULL;
-
-	int i, l=0;
-	for (i = 0; str[i]; ++i) {
-		if (str[i] == ' ' || str[i] == '\t' || str[i] == 0x20)
-		{
-			s[l++] = '%';
-			s[l++] = '2';
-			s[l++] = '0';
-		} else {
-			s[l++] = str[i];
-		}
-	}
-	s[l] = 0;
-	return s;
-}
-
-void search_video(const char *token, const char *query)
-{
+	struct video_search_t *t = data;
+	array_append(t->videos, cVKvideo_t*, video, 
+			perror("array_append"); return 1);
 	
-	char q[BUFSIZ] = {0};
-	sprintf(q, "q=%s", query);
-	char *q_escaped = 
-		make_escaped(q);
-	if (!q_escaped){
-		printf("Err: can't parse query string\n");
-		return;
-	}
+	printf("%d: ", t->iterator++);
+	printf("%s\n", video->title);
 
-	char s[BUFSIZ];
-	c_vk_run_method(
-			token, NULL,
-			s, search_video_cb,
-			"video.search",	
-			q_escaped,
-			NULL);
-
-	free(q_escaped);
+	return 0;
 }
 
 static int main_loop(const char *token)
@@ -196,12 +117,20 @@ static int main_loop(const char *token)
 
 		printf("Search video:\n");	
 
-		char *s = readString();
+		char *s = getstr(buffer, BUFSIZ);
 		if (strcmp(s, "q") == 0 || strcmp(s, "Q") == 0)
 			break;
 
-		search_video(token, s);
-		free(s);
+		array_t *videos = 
+			array_new(cVKvideo_t*, perror("array_new"); return 1);
+		struct video_search_t t = 
+			{videos, 1};
+
+		c_vk_video_search(
+				token, 
+				s, 
+				&t, 
+				video_search_cb);
 	}
 
 	return 0;

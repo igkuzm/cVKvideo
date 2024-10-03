@@ -19,9 +19,9 @@ else
 endif
 
 
-bin_PROGRAMS = cVKvideo
-cVKvideo_SOURCES = \
-									 main.c
+bin_PROGRAMS = vkvideo
+cVKvideo_SOURCES = vkvideo.c \
+									 cVKvideo.c
 
 cVKvideo_CFLAGS = 
 cVKvideo_LDFLAGS = $(CURL_LINK)

@@ -48,11 +48,6 @@ typedef struct cVKvideo {
 	char *track_code;
 } cVKvideo_t;
 
-char *c_vk_video_login(
-		void *userdata,
-		void (*callback)(
-			void *userdata, const char *token, const char *error));
-
 /* c_vk_video_search
  * search VK video with query string and callback allocated
  * cVKvideo_t for each - the caller of the function is
@@ -67,6 +62,9 @@ int c_vk_video_search(
 			void *userdata, cVKvideo_t *video, const char *err));
 
 
+/* allocate cVKvideo_t from json string */
 cVKvideo_t *c_vk_video_new_from_json(const char *json);
+
+/* free cVKvideo_t */
 void c_vk_video_free(cVKvideo_t *video);
 #endif /* ifndef C_VK_VIDEO_H */
