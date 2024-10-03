@@ -2,7 +2,7 @@
  * File              : ini.h
  * Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
  * Date              : 02.02.2023
- * Last Modified Date: 28.08.2024
+ * Last Modified Date: 03.10.2024
  * Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
  */
 
@@ -55,6 +55,17 @@ static int ini_parse(
 static char *ini_get(
 		const char *path, 
 		const char *section, const char *key); 
+
+/* ini_set - copy in file to out file, replace
+ * section/key with new value and return 0 on success
+ * @in - config file path
+ * @out - config file path
+ * @section - set NULL to search in all sections
+ * @key */
+static int ini_set(
+		const char *in_path, const char *out_path, 
+		const char *section, const char *key, const char *value); 
+
 
 /* IMPLIMATION */
 
@@ -135,6 +146,7 @@ int ini_parse(
 			key[klen+1] = 0;
 			for (i = 0; i < klen; ++i)
 				sect[i] = key[i];
+			sect[i] = 0;
 
 			// free key buffer
 			for (i = 0; i < klen; ++i)
@@ -151,7 +163,7 @@ int ini_parse(
 			match = 1;
 			continue;
 		}
-		if (ch == ' ' && !b_s && !bb_s){
+		if (ch == ' ' && !b_s && !bb_s && !section){
 			// skip spaces
 			continue;
 		}
@@ -231,6 +243,110 @@ char *ini_get(
 			{section, key, NULL};
 	ini_parse(path, &d, _ini_get_cb);
 	return d.v;
+}	
+
+struct _ini_set_d {
+	const char *s;
+	const char *k;
+	const char *v;
+	char fFoundKey;
+	FILE *out;
+	char cs[CONFIG_ARG_MAX_BYTES]; // current section
+};
+
+static int _ini_set_cb(
+		void *_d, const char *s, 
+		const char *k, const char *v)
+{
+	struct _ini_set_d *d = 
+		(struct _ini_set_d *)_d;
+
+	if (s && k && v) {
+		if (strcmp(s, d->cs)){
+			// this is new section
+			if (d->s && 
+					!d->fFoundKey &&
+					strcmp(d->cs, d->s) == 0)
+			{
+				// we need to add key
+				fputs(d->k, d->out);
+				fputs("=", d->out);
+				fputs(d->v, d->out);
+				fputs("\n", d->out);
+				d->fFoundKey = 1;
+			}
+			fputs("[", d->out);
+			fputs(s, d->out);
+			fputs("]\n", d->out);
+			strcpy(d->cs, s);
+		}
+	}
+
+	if (k && v){
+		if (strcmp(k, d->k) == 0 &&
+				((s == NULL && d->s == NULL) || 
+				 (s != NULL && d->s != NULL &&
+					strcmp(s, d->s) == 0))
+				)
+		{
+			// match!
+			fputs(k, d->out);
+			fputs("=", d->out);
+			fputs(d->v, d->out);
+			fputs("\n", d->out);
+			d->fFoundKey = 1;
+		} else {
+		  // this is not what we search
+			fputs(k, d->out);
+			fputs("=", d->out);
+			fputs(v, d->out);
+			fputs("\n", d->out);
+		}
+	}
+
+	return 0;
+}
+
+int ini_set(
+		const char *in_path, const char *out_path, 
+		const char *section, const char *key, const char *value)
+{
+	// return err on NULL params
+	if (!key || !value)
+		return 1;
+
+	FILE *out = fopen(out_path, "w");
+	if (!out)
+		return 1;
+	
+	struct _ini_set_d d = 
+			{section, key, value,
+			 	0, out, 0};
+
+	if (section && *section == 0)
+		d.s = NULL;
+
+	int ret = ini_parse(in_path, &d,
+		 	_ini_set_cb);
+	if (ret)
+		return ret;
+	
+	if(!d.fFoundKey){
+		// add section and key
+		if (d.s){
+			fputs("[", out);
+			fputs(d.s, out);
+			fputs("]\n", out);
+		}
+		fputs(d.k, out);
+		fputs("=", out);
+		fputs(d.v, out);
+		fputs("\n", out);
+	}
+
+	fclose(out);
+
+	return 0;
 }	
 
 #ifdef __cplusplus
