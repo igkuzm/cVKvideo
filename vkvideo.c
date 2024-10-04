@@ -170,16 +170,17 @@ static int main_loop(
 {
 	while (1) {
 video_search:;
-		printf( "\n");
-		printf("_____________________________\n");
-		printf("q - Quit\n");
-		printf("_____________________________\n");
-		printf("Search video: ");	
-
 		char *s;
 		if (arg){
 			s = arg;
+			printf("Search video: %s\n", s);	
 		} else {
+			printf( "\n");
+			printf("_____________________________\n");
+			printf("q - Quit\n");
+			printf("_____________________________\n");
+			printf("Search video: ");	
+			
 			s = getstr(buffer, BUFSIZ);
 			if (strcmp(s, "q") == 0 || strcmp(s, "Q") == 0)
 				break;
