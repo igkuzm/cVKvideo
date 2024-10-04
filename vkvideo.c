@@ -20,6 +20,7 @@
 #include "getstr.h"
 #include "cVKvideo.h"
 #include "array.h"
+#include "str.h"
 
 #define DEFAULT_DOWNLOAD "yt-dlp"
 #define DEFAULT_PLAYER "mplayer"
@@ -164,7 +165,8 @@ static int video_search_cb(
 	return 0;
 }
 
-static int main_loop(const char *token, const char *config)
+static int main_loop(
+		const char *token, const char *config, char *arg)
 {
 	while (1) {
 video_search:;
@@ -174,13 +176,18 @@ video_search:;
 		printf("_____________________________\n");
 		printf("Search video: ");	
 
-		char *s = getstr(buffer, BUFSIZ);
-		if (strcmp(s, "q") == 0 || strcmp(s, "Q") == 0)
-			break;
+		char *s;
+		if (arg){
+			s = arg;
+		} else {
+			s = getstr(buffer, BUFSIZ);
+			if (strcmp(s, "q") == 0 || strcmp(s, "Q") == 0)
+				break;
+		}
 
 		array_t *videos = 
 			array_new(cVKvideo_t*, perror("array_new"); return 1);
-		
+
 		c_vk_video_search(
 				token, 
 				s, 
@@ -188,6 +195,8 @@ video_search:;
 				video_search_cb);
 
 video_list:;
+		free(s);
+		arg = NULL;
 		int idx = 0;
 		array_for_each(videos, cVKvideo_t*, video){
 			print_video_in_list(video, ++idx);
@@ -308,7 +317,18 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	main_loop(token, config);
+	char *arg = NULL;
+	if (argc > 1){
+		struct str s;
+		str_init(&s);
+		int i;
+		for (i = 1; i < argc; ++i) 
+			str_appendf(&s, "%s ", argv[i]);
+		
+		arg = s.str;
+	}
+
+	main_loop(token, config, arg);
 
 	free(token);
 	return 0;
