@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <time.h>
 
+#define NUMBER_OF_VIDEOS 40
+
 typedef struct cVKvideo {
 	char *privacy_view;	
 	char *privacy_comment;

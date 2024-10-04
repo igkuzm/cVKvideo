@@ -21,7 +21,6 @@
 #include "cVKvideo.h"
 #include "array.h"
 
-#define NUMBER_OF_VIDEOS 20
 #define DEFAULT_DOWNLOAD "yt-dlp"
 #define DEFAULT_PLAYER "mplayer"
 
@@ -189,9 +188,9 @@ video_search:;
 				video_search_cb);
 
 video_list:;
-		int i = 0;
+		int idx = 0;
 		array_for_each(videos, cVKvideo_t*, video){
-			print_video_in_list(video, ++i);
+			print_video_in_list(video, ++idx);
 		}
 
 		// get video info
@@ -200,7 +199,7 @@ video_list:;
 			printf("_____________________________\n");
 			printf("q - Quit\n");
 			printf("b - back to search\n");
-			printf("space/enter - next list\n");
+			//printf("space/enter - next list\n");
 			printf("_____________________________\n");
 			printf("Select video number: ");	
 
@@ -226,7 +225,7 @@ video_description:
 						printf("q - Quit\n");
 						printf("b - back to video list\n");
 						printf("d - download video\n");
-						printf("space/enter - play video\n");
+						printf("p - play video\n");
 						printf("_____________________________\n");
 						printf("Command: ");	
 					
@@ -236,6 +235,8 @@ video_description:
 						if (strcmp(s, "b") == 0 || strcmp(s, "B") == 0)
 							goto video_list;
 						if (strcmp(s, "") == 0 || strcmp(s, " ") == 0)
+							goto video_description;
+						if (strcmp(s, "p") == 0 || strcmp(s, "P") == 0)
 						{
 							if (!video->player){
 								printf("ERROR: video has no url\n");
@@ -249,7 +250,6 @@ video_description:
 							printf("%s\n", buffer);
 							system(buffer);
 							printf("press any key\n");
-							getchar();
 							getchar();
 						}
 						if (strcmp(s, "d") == 0 || strcmp(s, "D") == 0)
@@ -266,7 +266,6 @@ video_description:
 							printf("%s\n", buffer);
 							system(buffer);
 							printf("press any key\n");
-							getchar();
 							getchar();
 						}
 					}

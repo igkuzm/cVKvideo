@@ -6,3 +6,10 @@ set redirect url to: http://localhost:2000
 
 get client id and client secret and 
 set CLIENT_ID and CLIENT_SECRET in config.h
+
+to play video in mpalyer create executable player.sh and 
+put there something like
+``yt-dlp -o - -f '(best[height<=1080])[protocol^=https]' $@
+| mplayer -vo sdl -zoom -cache 65536 -cache-min 4 -``
+
+and set PLAYER=/path/to/player.sh in ${HOME}/.config/cVKvideo/config

@@ -211,6 +211,9 @@ int c_vk_video_search(
 		return 1;
 	}
 
+	char count[16];
+	sprintf(count, "count=%d", NUMBER_OF_VIDEOS);
+
 	struct search_video_t t = 
 		{userdata, callback};
 
@@ -218,6 +221,7 @@ int c_vk_video_search(
 			token, NULL,
 			&t, search_video_cb,
 			"video.search",	
+			count,
 			q_escaped,
 			NULL);
 
