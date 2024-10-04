@@ -95,12 +95,20 @@ struct video_search_t {
 static int video_search_cb(
 		void *data, cVKvideo_t *video, const char *error)
 {
-	struct video_search_t *t = data;
-	array_append(t->videos, cVKvideo_t*, video, 
-			perror("array_append"); return 1);
-	
-	printf("%d: ", t->iterator++);
-	printf("%s\n", video->title);
+	if (error){
+		perror(error);
+		return 0;
+	}
+	if (video){
+		struct video_search_t *t = data;
+		array_append(t->videos, cVKvideo_t*, video, 
+				perror("array_append"); return 1);
+		
+		printf("%d: ", t->iterator++);
+		printf("%.40s\t", video->title);
+		//printf("[%0.2fm]\n", (double)video->duration / 60);
+		printf("\n");
+	}
 
 	return 0;
 }
@@ -131,6 +139,11 @@ static int main_loop(const char *token)
 				s, 
 				&t, 
 				video_search_cb);
+
+		// free array
+		array_for_each(videos, cVKvideo_t*, video)
+			c_vk_video_free(video);
+		array_free(videos);	
 	}
 
 	return 0;

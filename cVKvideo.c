@@ -164,14 +164,23 @@ static void search_video_cb(
 		return;
 	}
 	cJSON *json = cJSON_Parse(response);
-	if (!cJSON_IsArray(json)){
+	if (!cJSON_IsObject(json)){
 		if(t->callback)
 			t->callback(t->userdata, NULL, 
 					STR("can't parse json: %s\n", response));
 		return;
 	}
+	cJSON *items = 
+		cJSON_GetObjectItem(json, "items");
+	if (!cJSON_IsArray(items)){
+		if(t->callback)
+			t->callback(t->userdata, NULL, 
+					STR("no items, can't parse json: %s\n", response));
+		return;
+	}
+
 	cJSON *item;
-	cJSON_ArrayForEach(item, json){
+	cJSON_ArrayForEach(item, items){
 		cVKvideo_t *video =
 			_c_vk_video_new_from_json(item);
 		if (video)

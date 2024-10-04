@@ -66,7 +66,7 @@ typedef struct array {
 			on_error; \
 		} \
 		_a->len = 0;\
-		_a->mem = 0;\
+		_a->mem = 1;\
 	}\
   _a;\
 })
@@ -74,9 +74,10 @@ typedef struct array {
 #define array_append(a, T, item, on_error)\
 ({\
 	((T*)(a->data))[a->len++] = item; \
-	if (a->len > a->mem + 1){ \
-		a->data = realloc(a->data, sizeof(T) * (++a->mem + 1));\
+	if (a->len + 1>= a->mem){ \
+		a->data = realloc(a->data, sizeof(T) * (a->len + 1));\
 		if (!a->data){ on_error;} \
+		a->mem = a->len + 1;\
   } \
 })
 

@@ -20,9 +20,8 @@ endif
 
 
 bin_PROGRAMS = vkvideo
-cVKvideo_SOURCES = vkvideo.c \
-									 cVKvideo.c
+vkvideo_SOURCES = vkvideo.c cVKvideo.c
 
-cVKvideo_CFLAGS = 
-cVKvideo_LDFLAGS = $(CURL_LINK)
-cVKvideo_LDADD = cVK/.libs/libcVK.a -lcurl
+vkvideo_CFLAGS = 
+vkvideo_LDFLAGS = $(CURL_LINK)
+vkvideo_LDADD = cVK/.libs/libcVK.a -lcurl
