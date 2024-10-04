@@ -83,8 +83,8 @@ typedef struct array {
 
 #define array_at(a, T, index)\
 ({\
- if(index >= a->len) return NULL;\
- return (T*)(a->data[index]);\
+ if(index >= a->len && index < 0) return NULL;\
+ return ((T*)(a->data))[index];\
 })
 
 #define array_insert(a, T, item, index, on_error) \

@@ -15,12 +15,32 @@
 #include "strtok_foreach.h"
 #include "fm.h"
 #include <curl/curl.h>
+#include <string.h>
 #include "cVK/cJSON.h"
 #include "getstr.h"
 #include "cVKvideo.h"
 #include "array.h"
 
+#define NUMBER_OF_VIDEOS 20
+#define DEFAULT_DOWNLOAD "yt-dlp"
+#define DEFAULT_PLAYER "mplayer"
+
 char buffer[BUFSIZ];
+
+static void create_default_config(const char *path)
+{
+	FILE *fp = fopen(path, "w");
+	if(!fp)
+		return;
+	fputs("#default config\n", fp);
+	fputs("[cVKvideo]\n", fp);
+	fputs("DOWLOAD=", fp);
+	fputs(DEFAULT_DOWNLOAD, fp);
+	fputs("\n", fp);
+	fputs("PLAYER=", fp);
+	fputs(DEFAULT_PLAYER, fp);
+	fputs("\n", fp);
+}
 
 static void login_cb(
 		void *d, const char *t, int e, 
@@ -64,6 +84,7 @@ static char *login(){
 
 	char *home = getenv("HOME");
 	char config[PATH_MAX] = {0};
+	char config_old[PATH_MAX] = {0};
 	sprintf(config,
 			"%s/.config/cVKvideo", home);
 	
@@ -71,59 +92,88 @@ static char *login(){
 		newdir(config, 0744);	
 	
 	strcat(config, "/config");
+	strcat(config_old, config);
+	strcat(config_old, ".old");
 
-	char str[BUFSIZ] = {0};
-	strcat(str, "[cVK]\n");
-	strcat(str, "TOKEN=");
-	strcat(str, token);
-	strcat(str, "\n");
+	if (fcopy(config, config_old)){
+		perror("file copy");
+		return token;
+	}
 
-	// write token to config
-	FILE *fp = fopen(config, "w");
-	if (!fp)
-		return NULL;
-	fwrite(str, strlen(str), 1, fp);
-	fclose(fp);
+	if (ini_set(config_old, config, 
+			"[cVK]", "TOKEN", token))
+		perror("write ini file");
+	
 	return token;
 }
 
-struct video_search_t {
-	array_t *videos;
-	int iterator;
-};
+static void print_video_in_list(cVKvideo_t *v, int idx)
+{
+	int i;
+	printf("%d: ", idx);
+	if (idx < 10)
+		printf(" ");
+	printf("%.40s", v->title);
+	
+	//add spaces
+	int len = 0;
+	if (v->title)
+		len = strlen(v->title);
+	if (len > 40)
+		len = 40;
+	for (i = len; i < 41; ++i)
+		printf(" ");	
+
+	if (v->duration){
+		int hours = v->duration / 3600;
+		int minuts = v->duration % 3600;
+		int min = minuts / 60;
+		int sec = minuts % 60;
+		printf("[%d:%d:%d]", hours, min, sec);
+	}
+	printf("\n");
+}
+
+static void print_video_dscription(cVKvideo_t *v)
+{
+	printf("%s\n", v->title);
+	if (v->duration){
+		int hours = v->duration / 3600;
+		int minuts = v->duration % 3600;
+		int min = minuts / 60;
+		int sec = minuts % 60;
+		printf("[%d:%d:%d]\n", hours, min, sec);
+	}
+	printf("\n");
+	if (v->description)
+		printf("%s\n", v->description);
+}
 
 static int video_search_cb(
 		void *data, cVKvideo_t *video, const char *error)
 {
 	if (error){
-		perror(error);
+		printf("ERROR: %s\n",error);
 		return 0;
 	}
 	if (video){
-		struct video_search_t *t = data;
-		array_append(t->videos, cVKvideo_t*, video, 
+		array_t *videos = data;
+		array_append(videos, cVKvideo_t*, video, 
 				perror("array_append"); return 1);
-		
-		printf("%d: ", t->iterator++);
-		printf("%.40s\t", video->title);
-		//printf("[%0.2fm]\n", (double)video->duration / 60);
-		printf("\n");
 	}
 
 	return 0;
 }
 
-static int main_loop(const char *token)
+static int main_loop(const char *token, const char *config)
 {
 	while (1) {
-		char menuString[512];		
-		sprintf(menuString, "%s\n", "");
-		sprintf(menuString, "%s%s\n",menuString, "_____________________________");
-		sprintf(menuString, "%s%s\n",menuString, "q - Quit");
-		sprintf(menuString, "%s%s\n",menuString, "_____________________________");
-		printf("%s",menuString);	
-
-		printf("Search video:\n");	
+video_search:;
+		printf( "\n");
+		printf("_____________________________\n");
+		printf("q - Quit\n");
+		printf("_____________________________\n");
+		printf("Search video: ");	
 
 		char *s = getstr(buffer, BUFSIZ);
 		if (strcmp(s, "q") == 0 || strcmp(s, "Q") == 0)
@@ -131,21 +181,107 @@ static int main_loop(const char *token)
 
 		array_t *videos = 
 			array_new(cVKvideo_t*, perror("array_new"); return 1);
-		struct video_search_t t = 
-			{videos, 1};
-
+		
 		c_vk_video_search(
 				token, 
 				s, 
-				&t, 
+				videos, 
 				video_search_cb);
 
-		// free array
-		array_for_each(videos, cVKvideo_t*, video)
-			c_vk_video_free(video);
-		array_free(videos);	
+video_list:;
+		int i = 0;
+		array_for_each(videos, cVKvideo_t*, video){
+			print_video_in_list(video, ++i);
+		}
+
+		// get video info
+		while (1) {
+			printf( "\n");
+			printf("_____________________________\n");
+			printf("q - Quit\n");
+			printf("b - back to search\n");
+			printf("space/enter - next list\n");
+			printf("_____________________________\n");
+			printf("Select video number: ");	
+
+			char *s = getstr(buffer, BUFSIZ);
+			if (strcmp(s, "q") == 0 || strcmp(s, "Q") == 0)
+				goto exit_main_loop;
+			if (strcmp(s, "b") == 0 || strcmp(s, "B") == 0)
+				goto video_search;
+			if (strcmp(s, "") == 0 || strcmp(s, " ") == 0)
+				goto video_list;
+
+			int idx = atoi(s);
+			if (idx > 0 && idx <= NUMBER_OF_VIDEOS){
+				cVKvideo_t *video =
+					((cVKvideo_t**)(videos->data))[idx-1];
+				if (video){
+video_description:
+					while (1) {
+						/*printf("%s\n", video->player); //log*/
+						print_video_dscription(video);
+						printf( "\n");
+						printf("_____________________________\n");
+						printf("q - Quit\n");
+						printf("b - back to video list\n");
+						printf("d - download video\n");
+						printf("space/enter - play video\n");
+						printf("_____________________________\n");
+						printf("Command: ");	
+					
+						char *s = getstr(buffer, BUFSIZ);
+						if (strcmp(s, "q") == 0 || strcmp(s, "Q") == 0)
+							goto exit_main_loop;
+						if (strcmp(s, "b") == 0 || strcmp(s, "B") == 0)
+							goto video_list;
+						if (strcmp(s, "") == 0 || strcmp(s, " ") == 0)
+						{
+							if (!video->player){
+								printf("ERROR: video has no url\n");
+								break;
+							}
+							char *cmd = ini_get(config,
+									"cVKvideo", "PLAYER");
+							if (!cmd)
+								cmd = DEFAULT_PLAYER;
+							sprintf(buffer, "%s '%s'", cmd, video->player);	
+							printf("%s\n", buffer);
+							system(buffer);
+							printf("press any key\n");
+							getchar();
+							getchar();
+						}
+						if (strcmp(s, "d") == 0 || strcmp(s, "D") == 0)
+						{
+							if (!video->player){
+								printf("ERROR: video has no url\n");
+								break;
+							}
+							char *cmd = ini_get(config,
+									"cVKvideo", "DOWLOAD");
+							if (!cmd)
+								cmd = DEFAULT_DOWNLOAD;
+							sprintf(buffer, "%s '%s'", cmd, video->player);	
+							printf("%s\n", buffer);
+							system(buffer);
+							printf("press any key\n");
+							getchar();
+							getchar();
+						}
+					}
+				}
+			}
+		}
+		{
+			// free array
+			array_for_each(videos, cVKvideo_t*, video)
+				c_vk_video_free(video);
+			array_free(videos);	
+		}
 	}
 
+	exit_main_loop:;
 	return 0;
 }
 
@@ -157,7 +293,12 @@ int main(int argc, char *argv[])
 	char config[PATH_MAX] = {0};
 	sprintf(config,
 			"%s/.config/cVKvideo/config", home);
-	
+
+	if (!fexists(config)){
+		// create default config
+		create_default_config(config);
+	}
+
 	char *token = 
 		ini_get(config, "cVK", "TOKEN");
 	if (!token)
@@ -168,7 +309,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	main_loop(token);
+	main_loop(token, config);
 
 	free(token);
 	return 0;

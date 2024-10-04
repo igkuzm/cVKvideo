@@ -157,6 +157,8 @@ struct search_video_t{
 static void search_video_cb(
 		void *d, const char *response, const char *error)
 {
+	/*printf("%s\n", response); //log*/
+	
 	struct search_video_t *t = (struct search_video_t *)d;  
 	if (error){
 		if(t->callback)
