@@ -2,7 +2,7 @@
  * File              : vkvideo.c
  * Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
  * Date              : 03.10.2024
- * Last Modified Date: 04.10.2024
+ * Last Modified Date: 05.10.2024
  * Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
  */
 
@@ -196,7 +196,7 @@ video_search:;
 				video_search_cb);
 
 video_list:;
-		free(s);
+		if (arg) free(s);
 		arg = NULL;
 		int idx = 0;
 		array_for_each(videos, cVKvideo_t*, video){
