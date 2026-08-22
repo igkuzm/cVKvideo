@@ -2,7 +2,7 @@
  * File              : vkvideo.c
  * Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
  * Date              : 03.10.2024
- * Last Modified Date: 05.10.2024
+ * Last Modified Date: 22.08.2026
  * Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
  */
 
@@ -42,6 +42,7 @@ static void create_default_config(const char *path)
 	fputs("\n", fp);
 }
 
+/*
 static void login_cb(
 		void *d, const char *t, int e, 
 		const char *u, const char *error)
@@ -106,31 +107,26 @@ static char *login(){
 	
 	return token;
 }
+*/
 
 static void print_video_in_list(cVKvideo_t *v, int idx)
 {
-	int i;
+	// index
 	printf("%d: ", idx);
 	if (idx < 10)
 		printf(" ");
-	printf("%.40s", v->title);
 	
-	//add spaces
-	int len = 0;
-	if (v->title)
-		len = strlen(v->title);
-	if (len > 40)
-		len = 40;
-	for (i = len; i < 41; ++i)
-		printf(" ");	
-
+	// time
 	if (v->duration){
 		int hours = v->duration / 3600;
 		int minuts = v->duration % 3600;
 		int min = minuts / 60;
 		int sec = minuts % 60;
-		printf("[%d:%d:%d]", hours, min, sec);
+		printf("[%02d:%02d:%02d]\t", hours, min, sec);
 	}
+	
+	// title
+	printf("%.80s", v->title);
 	printf("\n");
 }
 
@@ -142,7 +138,7 @@ static void print_video_dscription(cVKvideo_t *v)
 		int minuts = v->duration % 3600;
 		int min = minuts / 60;
 		int sec = minuts % 60;
-		printf("[%d:%d:%d]\n", hours, min, sec);
+		printf("[%02d:%02d:%02d]\n", hours, min, sec);
 	}
 	printf("\n");
 	if (v->description)
@@ -311,12 +307,17 @@ int main(int argc, char *argv[])
 	char *token = 
 		ini_get(config, "cVK", "TOKEN");
 	if (!token)
-		token = login();
-
-	if(!token){
-		printf("Err: can't login\n");
-		return 1;
+	{
+		printf("get new access token in https://vkhost.gethub.io\n"
+                   "and create ${HOME}/.config/cVKvideo/config with TOKEN=your_token\n");
+		//token = login();
+		return 0;
 	}
+
+	//if(!token){
+	//	printf("Err: can't login\n");
+	//	return 1;
+	//}
 
 	char *arg = NULL;
 	if (argc > 1){
