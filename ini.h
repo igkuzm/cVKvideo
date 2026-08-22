@@ -2,7 +2,7 @@
  * File              : ini.h
  * Author            : Igor V. Sementsov <ig.kuzm@gmail.com>
  * Date              : 02.02.2023
- * Last Modified Date: 03.10.2024
+ * Last Modified Date: 22.08.2026
  * Last Modified By  : Igor V. Sementsov <ig.kuzm@gmail.com>
  */
 
@@ -172,7 +172,7 @@ int ini_parse(
 			need_new_line = 0;
 			if (match) {
 				// callback key/value pair
-				value[vlen+1] = 0;
+				value[vlen] = 0;
 				if (callback)
 					if (callback(user_data, sect, key, value))
 						break;
